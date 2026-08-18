@@ -68,6 +68,9 @@ const GROK_IMAGINE_RESOLUTIONS: ReadonlyArray<string> = ['1k', '2k']
  * Models served by xAI's Imagine API. They are aspect-ratio sized and
  * support image-conditioned generation via `/v1/images/edits`; the legacy
  * grok-2-image-1212 model is pixel-sized and text-to-image only.
+ *
+ * This prefix match covers grok-imagine-image, grok-imagine-image-quality
+ * (@deprecated tier) and grok-imagine-image-2.0.
  */
 export function isGrokImagineImageModel(model: string): boolean {
   return model.startsWith('grok-imagine-image')
@@ -142,12 +145,55 @@ export interface GrokImagineImageProviderOptions extends GrokImageBaseProviderOp
 }
 
 /**
+ * Provider options for the grok-imagine-image-2.0 model.
+ *
+ * The current generation of the Imagine image models: generation and
+ * image-conditioned editing via xAI's Imagine API. Adds the `quality`
+ * parameter (only supported on 2.0) — see
+ * https://docs.x.ai/developers/model-capabilities/images/generation
+ */
+export interface GrokImagineImage2ProviderOptions extends GrokImageBaseProviderOptions {
+  /**
+   * The format in which generated images are returned.
+   * @default 'url'
+   */
+  response_format?: 'url' | 'b64_json'
+
+  /**
+   * Output resolution.
+   * @default '1k'
+   */
+  resolution?: '1k' | '2k'
+
+  /**
+   * Generation quality. Only supported for grok-imagine-image-2.0.
+   * @default 'medium'
+   */
+  quality?: 'low' | 'medium'
+}
+
+/**
+ * Union of all Grok image provider options. Used as the base provider-options
+ * type on the adapter; model-level resolution happens at the generateImage()
+ * call site via `GrokImageModelProviderOptionsByName`.
+ */
+export type GrokImageAnyProviderOptions =
+  | GrokImageProviderOptions
+  | GrokImagineImageProviderOptions
+  | GrokImagineImage2ProviderOptions
+
+/**
  * Type-only map from model name to its specific provider options.
+ *
+ * grok-imagine-image-quality is a @deprecated older tier — prefer
+ * grok-imagine-image-2.0 (which exposes quality control via the
+ * `quality` option) for new work.
  */
 export type GrokImageModelProviderOptionsByName = {
   'grok-2-image-1212': GrokImageProviderOptions
   'grok-imagine-image': GrokImagineImageProviderOptions
   'grok-imagine-image-quality': GrokImagineImageProviderOptions
+  'grok-imagine-image-2.0': GrokImagineImage2ProviderOptions
 }
 
 /**
@@ -157,6 +203,7 @@ export type GrokImageModelSizeByName = {
   'grok-2-image-1212': GrokImageSize
   'grok-imagine-image': GrokImagineImageSize
   'grok-imagine-image-quality': GrokImagineImageSize
+  'grok-imagine-image-2.0': GrokImagineImageSize
 }
 
 /**
@@ -168,6 +215,7 @@ export type GrokImageModelInputModalitiesByName = {
   'grok-2-image-1212': readonly []
   'grok-imagine-image': readonly ['image']
   'grok-imagine-image-quality': readonly ['image']
+  'grok-imagine-image-2.0': readonly ['image']
 }
 
 /**

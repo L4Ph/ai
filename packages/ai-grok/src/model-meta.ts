@@ -115,6 +115,11 @@ const GROK_IMAGINE_IMAGE = {
   },
 } as const satisfies ModelMeta
 
+/**
+ * @deprecated Superseded by grok-imagine-image-2.0, which exposes the same
+ * quality control as a `quality` option ('low' | 'medium'). Kept for
+ * backward compatibility — prefer grok-imagine-image-2.0 for new work.
+ */
 const GROK_IMAGINE_IMAGE_QUALITY = {
   name: 'grok-imagine-image-quality',
   supports: {
@@ -127,6 +132,24 @@ const GROK_IMAGINE_IMAGE_QUALITY = {
     },
     output: {
       normal: 0.05,
+    },
+  },
+} as const satisfies ModelMeta
+
+// Current generation of the Imagine image models. Recommended for new work.
+const GROK_IMAGINE_IMAGE_2_0 = {
+  name: 'grok-imagine-image-2.0',
+  supports: {
+    input: ['text', 'image'],
+    output: ['image'],
+  },
+  pricing: {
+    input: {
+      normal: 0,
+    },
+    output: {
+      // per generated image
+      normal: 0.04,
     },
   },
 } as const satisfies ModelMeta
@@ -229,6 +252,7 @@ export const GROK_IMAGE_MODELS = [
   GROK_2_IMAGE.name,
   GROK_IMAGINE_IMAGE.name,
   GROK_IMAGINE_IMAGE_QUALITY.name,
+  GROK_IMAGINE_IMAGE_2_0.name,
 ] as const
 
 /**

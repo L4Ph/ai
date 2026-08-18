@@ -166,35 +166,46 @@ console.log(result.summary);
 
 ## Image Generation
 
-Generate images with Grok 2 Image:
+The current generation of Grok's Imagine image models is
+`grok-imagine-image-2.0` — $0.04 per image, text-to-image plus
+image-conditioned editing. Generate an image from a text prompt:
 
 ```typescript
 import { generateImage } from "@tanstack/ai";
 import { grokImage } from "@tanstack/ai-grok";
 
 const result = await generateImage({
-  adapter: grokImage("grok-2-image-1212"),
+  adapter: grokImage("grok-imagine-image-2.0"),
   prompt: "A futuristic cityscape at sunset",
-  numberOfImages: 1,
 });
 
 console.log(result.images);
 ```
 
-The grok-imagine models (`grok-imagine-image`, `grok-imagine-image-quality`)
-are aspect-ratio sized — `size` takes an `aspectRatio_resolution` template
-like `"16:9_2k"` (the `_2k` suffix is optional):
+The grok-imagine models are aspect-ratio sized — `size` takes an
+`aspectRatio_resolution` template like `"16:9_2k"` (the `_2k` suffix is
+optional). `grok-imagine-image-2.0` also accepts a `quality` provider
+option (`"low"` | `"medium"`, default `"medium"`):
 
 ```typescript
 import { generateImage } from "@tanstack/ai";
 import { grokImage } from "@tanstack/ai-grok";
 
 const result = await generateImage({
-  adapter: grokImage("grok-imagine-image"),
+  adapter: grokImage("grok-imagine-image-2.0"),
   prompt: "A futuristic cityscape at sunset",
   size: "16:9_2k",
+  modelOptions: {
+    quality: "medium",
+  },
 });
 ```
+
+> The older `grok-imagine-image` ($0.02/image) and
+> `grok-imagine-image-quality` ($0.05/image) models remain supported but
+> are superseded — prefer `grok-imagine-image-2.0` for new work.
+> `grok-2-image-1212` is the legacy pixel-sized model; `size` takes a
+> `WIDTHxHEIGHT` value like `"1024x1024"`.
 
 ### Image Editing (image-to-image)
 
@@ -209,7 +220,7 @@ import { generateImage } from "@tanstack/ai";
 import { grokImage } from "@tanstack/ai-grok";
 
 const result = await generateImage({
-  adapter: grokImage("grok-imagine-image"),
+  adapter: grokImage("grok-imagine-image-2.0"),
   prompt: [
     {
       type: "text",

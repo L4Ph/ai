@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { resolveDebugOption } from '@tanstack/ai/adapter-internals'
-import { EventType, summarize } from '@tanstack/ai'
+import { EventType, generateImage, summarize } from '@tanstack/ai'
 import { createGrokText, grokText } from '../src/adapters/text'
 import { createGrokImage, grokImage } from '../src/adapters/image'
 import { createGrokSummarize, grokSummarize } from '../src/adapters/summarize'
@@ -102,6 +102,7 @@ const weatherTool: Tool = {
 describe('Grok adapters', () => {
   afterEach(() => {
     vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
   })
 
   it('exposes only the supported xAI Responses chat models', () => {
@@ -421,6 +422,19 @@ describe('Grok adapters', () => {
   })
 
   describe('Image adapter', () => {
+    /** A fetch stub that answers every edit request with one generated image. */
+    const mockEditFetch = () =>
+      vi.fn(
+        async (_input: string | URL | Request, _init?: RequestInit) =>
+          new Response(
+            JSON.stringify({ data: [{ url: 'https://e.com/o.png' }] }),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            },
+          ),
+      )
+
     it('creates an image adapter with explicit API key', () => {
       const adapter = createGrokImage('grok-2-image-1212', 'test-api-key')
 
@@ -469,6 +483,167 @@ describe('Grok adapters', () => {
         }),
       )
       expect(mockGenerate.mock.calls[0]![0]).not.toHaveProperty('size')
+    })
+
+    it('creates a grok-imagine-image-2.0 adapter with explicit API key', () => {
+      const adapter = createGrokImage('grok-imagine-image-2.0', 'test-api-key')
+
+      expect(adapter).toBeDefined()
+      expect(adapter.kind).toBe('image')
+      expect(adapter.name).toBe('grok')
+      expect(adapter.model).toBe('grok-imagine-image-2.0')
+    })
+
+    it('creates a grok-imagine-image-2.0 adapter from environment variable', () => {
+      vi.stubEnv('XAI_API_KEY', 'env-api-key')
+
+      const adapter = grokImage('grok-imagine-image-2.0')
+
+      expect(adapter).toBeDefined()
+      expect(adapter.kind).toBe('image')
+      expect(adapter.model).toBe('grok-imagine-image-2.0')
+    })
+
+    it('maps the size template to aspect_ratio/resolution for 2.0', async () => {
+      const adapter = createGrokImage(
+        'grok-imagine-image-2.0',
+        'test-api-key',
+      )
+      const mockGenerate = vi.fn().mockResolvedValue({
+        data: [{ url: 'https://example.com/out.png' }],
+      })
+      ;(adapter as any).client = { images: { generate: mockGenerate } }
+
+      await adapter.generateImages({
+        model: 'grok-imagine-image-2.0',
+        prompt: 'A skyline',
+        size: '9:16_2k',
+        logger: testLogger,
+      })
+
+      expect(mockGenerate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'grok-imagine-image-2.0',
+          aspect_ratio: '9:16',
+          resolution: '2k',
+        }),
+      )
+      expect(mockGenerate.mock.calls[0]![0]).not.toHaveProperty('size')
+    })
+
+    it('passes the 2.0 quality option through to the request', async () => {
+      const adapter = createGrokImage(
+        'grok-imagine-image-2.0',
+        'test-api-key',
+      )
+      const mockGenerate = vi.fn().mockResolvedValue({
+        data: [{ url: 'https://example.com/out.png' }],
+      })
+      ;(adapter as any).client = { images: { generate: mockGenerate } }
+
+      await adapter.generateImages({
+        model: 'grok-imagine-image-2.0',
+        prompt: 'A skyline',
+        modelOptions: { quality: 'low' },
+        logger: testLogger,
+      })
+
+      expect(mockGenerate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'grok-imagine-image-2.0',
+          quality: 'low',
+        }),
+      )
+    })
+
+    it('sends type image_url for single-image edits on 2.0', async () => {
+      const fetchMock = mockEditFetch()
+      vi.stubGlobal('fetch', fetchMock)
+      const adapter = createGrokImage(
+        'grok-imagine-image-2.0',
+        'test-api-key',
+      )
+
+      await adapter.generateImages({
+        model: 'grok-imagine-image-2.0',
+        prompt: [
+          { type: 'text', content: 'Render this as a pencil sketch' },
+          {
+            type: 'image',
+            source: { type: 'url', value: 'https://example.com/photo.png' },
+          },
+        ],
+        logger: testLogger,
+      })
+
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      const [url, init] = fetchMock.mock.calls[0]!
+      expect(url).toBe('https://api.x.ai/v1/images/edits')
+      const body = JSON.parse(String(init?.body))
+      expect(body).toEqual({
+        model: 'grok-imagine-image-2.0',
+        prompt: 'Render this as a pencil sketch',
+        image: { url: 'https://example.com/photo.png', type: 'image_url' },
+      })
+    })
+
+    it('sends type image_url for multi-image edits on 2.0', async () => {
+      const fetchMock = mockEditFetch()
+      vi.stubGlobal('fetch', fetchMock)
+      const adapter = createGrokImage(
+        'grok-imagine-image-2.0',
+        'test-api-key',
+      )
+
+      await adapter.generateImages({
+        model: 'grok-imagine-image-2.0',
+        prompt: [
+          { type: 'text', content: 'Blend these two scenes' },
+          {
+            type: 'image',
+            source: { type: 'url', value: 'https://example.com/a.png' },
+          },
+          {
+            type: 'image',
+            source: { type: 'url', value: 'https://example.com/b.png' },
+          },
+        ],
+        logger: testLogger,
+      })
+
+      const body = JSON.parse(String(fetchMock.mock.calls[0]![1]?.body))
+      expect(body).toEqual({
+        model: 'grok-imagine-image-2.0',
+        prompt: 'Blend these two scenes',
+        images: [
+          { url: 'https://example.com/a.png', type: 'image_url' },
+          { url: 'https://example.com/b.png', type: 'image_url' },
+        ],
+      })
+    })
+
+    it('resolves model-specific provider options at the generateImage call site (#grok-2.0)', () => {
+      // Type-level regression guard: the per-model provider options are
+      // resolved at the generateImage() call site via the adapter's
+      // modelProviderOptionsByName map. This closure is type-checked but
+      // never executed — passing CI's test:types is the assertion.
+      const _typeCheck = () => {
+        // 2.0 exposes the quality option ('low' | 'medium').
+        void generateImage({
+          adapter: grokImage('grok-imagine-image-2.0'),
+          prompt: 'A skyline',
+          modelOptions: { quality: 'low' },
+        })
+        // The older imagine tier has no quality option — reject at compile time.
+        void generateImage({
+          adapter: grokImage('grok-imagine-image'),
+          prompt: 'A skyline',
+          // @ts-expect-error quality is not a valid option for grok-imagine-image
+          modelOptions: { quality: 'low' },
+        })
+      }
+
+      expect(_typeCheck).toBeInstanceOf(Function)
     })
   })
 

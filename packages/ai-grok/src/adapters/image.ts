@@ -23,10 +23,10 @@ import type {
 import type OpenAI_SDK from 'openai'
 import type { GrokImageModel } from '../model-meta'
 import type {
+  GrokImageAnyProviderOptions,
   GrokImageModelInputModalitiesByName,
   GrokImageModelProviderOptionsByName,
   GrokImageModelSizeByName,
-  GrokImageProviderOptions,
 } from '../image/image-provider-options'
 import type { GrokClientConfig } from '../utils/client'
 
@@ -93,7 +93,7 @@ export class GrokImageAdapter<
   TModel extends GrokImageModel,
 > extends BaseImageAdapter<
   TModel,
-  GrokImageProviderOptions,
+  GrokImageAnyProviderOptions,
   GrokImageModelProviderOptionsByName,
   GrokImageModelSizeByName,
   GrokImageModelInputModalitiesByName
@@ -111,7 +111,7 @@ export class GrokImageAdapter<
   }
 
   async generateImages(
-    options: ImageGenerationOptions<GrokImageProviderOptions>,
+    options: ImageGenerationOptions<GrokImageAnyProviderOptions>,
   ): Promise<ImageGenerationResult> {
     const { model, numberOfImages, size, modelOptions } = options
 
@@ -210,12 +210,13 @@ export class GrokImageAdapter<
    * The `/v1/images/edits` endpoint takes `application/json` (the OpenAI
    * SDK's `images.edit()` sends `multipart/form-data`, which xAI rejects),
    * so this path issues the request directly. One input is sent as
-   * `image: { url }`; multiple inputs (up to 3) as `images: [{ url }, ...]`,
-   * addressed by xAI in the order they are sent. The prompt text is sent
-   * verbatim — no referencing markers are injected.
+   * `image: { url, type: 'image_url' }`; multiple inputs (up to 3) as
+   * `images: [{ url, type: 'image_url' }, ...]`, addressed by xAI in the
+   * order they are sent. The prompt text is sent verbatim — no referencing
+   * markers are injected.
    */
   private async editImages(
-    options: ImageGenerationOptions<GrokImageProviderOptions>,
+    options: ImageGenerationOptions<GrokImageAnyProviderOptions>,
     resolved: ResolvedMediaPrompt,
   ): Promise<ImageGenerationResult> {
     const { model, numberOfImages, size, modelOptions, logger } = options
@@ -247,8 +248,10 @@ export class GrokImageAdapter<
       model,
       prompt,
       ...(urls.length === 1
-        ? { image: { url: urls[0] } }
-        : { images: urls.map((url) => ({ url })) }),
+        ? { image: { url: urls[0], type: 'image_url' } }
+        : {
+            images: urls.map((url) => ({ url, type: 'image_url' })),
+          }),
       ...(numberOfImages !== undefined && { n: numberOfImages }),
       ...imagineSizeParams(size),
       ...modelOptions,
