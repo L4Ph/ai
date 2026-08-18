@@ -510,10 +510,7 @@ describe('Grok adapters', () => {
     })
 
     it('maps the size template to aspect_ratio/resolution for 2.0', async () => {
-      const adapter = createGrokImage(
-        'grok-imagine-image-2.0',
-        'test-api-key',
-      )
+      const adapter = createGrokImage('grok-imagine-image-2.0', 'test-api-key')
       const mockGenerate = vi.fn().mockResolvedValue({
         data: [{ url: 'https://example.com/out.png' }],
       })
@@ -537,10 +534,7 @@ describe('Grok adapters', () => {
     })
 
     it('passes the 2.0 quality option through to the request', async () => {
-      const adapter = createGrokImage(
-        'grok-imagine-image-2.0',
-        'test-api-key',
-      )
+      const adapter = createGrokImage('grok-imagine-image-2.0', 'test-api-key')
       const mockGenerate = vi.fn().mockResolvedValue({
         data: [{ url: 'https://example.com/out.png' }],
       })
@@ -564,10 +558,7 @@ describe('Grok adapters', () => {
     it('sends type image_url for single-image edits on 2.0', async () => {
       const fetchMock = mockEditFetch()
       vi.stubGlobal('fetch', fetchMock)
-      const adapter = createGrokImage(
-        'grok-imagine-image-2.0',
-        'test-api-key',
-      )
+      const adapter = createGrokImage('grok-imagine-image-2.0', 'test-api-key')
 
       await adapter.generateImages({
         model: 'grok-imagine-image-2.0',
@@ -595,10 +586,7 @@ describe('Grok adapters', () => {
     it('sends type image_url for multi-image edits on 2.0', async () => {
       const fetchMock = mockEditFetch()
       vi.stubGlobal('fetch', fetchMock)
-      const adapter = createGrokImage(
-        'grok-imagine-image-2.0',
-        'test-api-key',
-      )
+      const adapter = createGrokImage('grok-imagine-image-2.0', 'test-api-key')
 
       await adapter.generateImages({
         model: 'grok-imagine-image-2.0',
