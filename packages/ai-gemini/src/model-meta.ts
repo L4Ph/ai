@@ -912,7 +912,65 @@ const GEMINI_3_5_FLASH_LITE = {
     GeminiThinkingOptions
 >
 
+const GEMINI_3_8_FLASH = {
+  name: 'gemini-3.8-flash',
+  max_input_tokens: 1_048_576,
+  max_output_tokens: 65_536,
+  supports: {
+    input: ['text', 'image', 'video', 'document', 'audio'],
+    output: ['text'],
+    capabilities: ['function_calling', 'structured_output', 'thinking'],
+    tools: [],
+  },
+  pricing: {
+    input: {
+      normal: 0.825,
+      cached: 0.0825,
+    },
+    output: {
+      normal: 4.125,
+    },
+  },
+} as const satisfies ModelMeta<
+  GeminiToolConfigOptions &
+    GeminiSafetyOptions &
+    GeminiCommonConfigOptions &
+    GeminiCachedContentOptions &
+    GeminiStructuredOutputOptions &
+    GeminiThinkingOptions
+>
+
+const GEMINI_4_ARGON = {
+  name: 'gemini-4-argon',
+  max_input_tokens: 1_048_576,
+  max_output_tokens: 943_718,
+  supports: {
+    input: ['audio', 'document', 'image', 'text', 'video'],
+    output: ['text'],
+    capabilities: ['function_calling', 'structured_output', 'thinking'],
+    tools: [],
+  },
+  pricing: {
+    input: {
+      normal: 2,
+      cached: 0.1,
+    },
+    output: {
+      normal: 10,
+    },
+  },
+} as const satisfies ModelMeta<
+  GeminiToolConfigOptions &
+    GeminiSafetyOptions &
+    GeminiCommonConfigOptions &
+    GeminiCachedContentOptions &
+    GeminiStructuredOutputOptions &
+    GeminiThinkingOptions
+>
+
 export const GEMINI_MODELS = [
+  GEMINI_3_8_FLASH.name,
+  GEMINI_4_ARGON.name,
   GEMINI_3_7_FLASH.name,
   GEMINI_3_6_FLASH.name,
   GEMINI_3_5_FLASH.name,
@@ -1129,6 +1187,18 @@ export type GeminiChatModelProviderOptionsByName = {
     GeminiCachedContentOptions &
     GeminiStructuredOutputOptions &
     GeminiThinkingOptions
+  [GEMINI_3_8_FLASH.name]: GeminiToolConfigOptions &
+    GeminiSafetyOptions &
+    GeminiCommonConfigOptions &
+    GeminiCachedContentOptions &
+    GeminiStructuredOutputOptions &
+    GeminiThinkingOptions
+  [GEMINI_4_ARGON.name]: GeminiToolConfigOptions &
+    GeminiSafetyOptions &
+    GeminiCommonConfigOptions &
+    GeminiCachedContentOptions &
+    GeminiStructuredOutputOptions &
+    GeminiThinkingOptions
 }
 
 /**
@@ -1177,4 +1247,6 @@ export type GeminiModelInputModalitiesByName = {
 
   // Models with text, image, audio, video (no document)
   [GEMINI_2_5_FLASH.name]: typeof GEMINI_2_5_FLASH.supports.input
+  [GEMINI_3_8_FLASH.name]: typeof GEMINI_3_8_FLASH.supports.input
+  [GEMINI_4_ARGON.name]: typeof GEMINI_4_ARGON.supports.input
 }
